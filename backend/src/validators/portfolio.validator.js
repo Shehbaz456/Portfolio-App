@@ -60,8 +60,8 @@ const portfolioSchema = z.object(basePortfolioSchema);
 const portfolioUpdateSchema = z.object({
     template: z.enum(['templateA', 'templateB']).optional(),
     hero: z.object({
-        name: z.string().min(1, 'Hero name is required').optional(),
-        title: z.string().min(1, 'Hero title is required').optional(),
+        name: z.string().min(3, 'Hero name is required').optional(),
+        title: z.string().min(3, 'Hero title is required').optional(),
         tagline: z.string().optional().nullable(),
         profileImage: z.string().optional().nullable()
     }).optional(),
