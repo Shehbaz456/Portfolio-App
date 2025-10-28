@@ -232,90 +232,6 @@ const getAllPortfolios = asyncHandler(async (req, res) => {
 });
 
 
-
-// Get All Portfolios
-// const getAllPortfolios = asyncHandler(async (req, res) => {
-//   const {
-//     skill,
-//     role,
-//     search,
-//     page = 1,
-//     limit = 10,
-//     sortBy = 'createdAt',
-//     order = 'desc'
-//   } = req.query;
-
-//   // Build filter object
-//   let filter = {};
-
-//   // Handle skill filtering with case-insensitive regex
-//   if (skill) {
-//     filter.skills = { 
-//       $regex: new RegExp(skill, 'i')
-//     };
-//   }
-
-//   // Handle role filtering with case-insensitive regex
-//   if (role) {
-//     filter['hero.title'] = { 
-//       $regex: new RegExp(role, 'i')
-//     };
-//   }
-
-//   // Add search functionality across multiple fields
-//   if (search) {
-//     filter.$or = [
-//       { 'hero.name': { $regex: new RegExp(search, 'i') } },
-//       { 'hero.title': { $regex: new RegExp(search, 'i') } },
-//       { 'aboutMe.bio': { $regex: new RegExp(search, 'i') } },
-//       { skills: { $regex: new RegExp(search, 'i') } }
-//     ];
-//   }
-
-//   try {
-//     // Calculate pagination
-//     const pageNumber = parseInt(page);
-//     const limitNumber = parseInt(limit);
-//     const skip = (pageNumber - 1) * limitNumber;
-
-//     if (pageNumber < 1 || limitNumber < 1) {
-//       throw new ApiError(400, 'Invalid pagination parameters');
-//     }
- 
-//     const sortOption = {};
-//     sortOption[sortBy] = order === 'desc' ? -1 : 1;
-//     const totalDocs = await Portfolio.countDocuments(filter);
-
-//     // Execute query with pagination and sorting
-//     const filteredData = await Portfolio.find(filter)
-//       .sort(sortOption)
-//       .skip(skip)
-//       .limit(limitNumber);
-
-//     const totalPages = Math.ceil(totalDocs / limitNumber);
-//     const hasNextPage = pageNumber < totalPages;
-//     const hasPrevPage = pageNumber > 1;
-
-//     return res.status(200).json(new ApiResponse(200, {
-//       filteredData,
-//       pagination: {
-//         currentPage: pageNumber,
-//         totalPages,
-//         totalResults: totalDocs,
-//         hasNextPage,
-//         hasPrevPage,
-//         limit: limitNumber
-//       }
-//     }, 'Portfolios fetched successfully'));
-
-//   } catch (error) {
-//     if (error instanceof ApiError) {
-//       throw error;
-//     }
-//     throw new ApiError(500, 'Error fetching portfolios', error.message);
-//   }
-// });
-
 // Get Single Portfolio
 const getPortfolioById = asyncHandler(async (req, res) => {
   const portfolio = await Portfolio.findById(req.params.id);
@@ -330,6 +246,158 @@ const getPortfolioById = asyncHandler(async (req, res) => {
 });
 
 // Update Portfolio
+// const updatePortfolio = asyncHandler(async (req, res) => {
+//   // Find existing portfolio
+//   const existingPortfolio = await Portfolio.findById(req.params.id);
+//   if (!existingPortfolio) {
+//     throw new ApiError(404, 'Portfolio not found');
+//   }
+
+//   // Parse incoming data
+//   const data = {
+//     template: tryParse(req.body.template),
+//     hero: tryParse(req.body.hero),
+//     aboutMe: tryParse(req.body.aboutMe),
+//     skills: tryParse(req.body.skills),
+//     services: tryParse(req.body.services),
+//     portfolio: tryParse(req.body.portfolio),
+//     testimonials: tryParse(req.body.testimonials),
+//     blog: tryParse(req.body.blog),
+//     contact: tryParse(req.body.contact)
+//   };
+
+//   // Handle profile image update if provided
+//   if (req.files?.profileImage?.[0]) {
+//     const profileImageResult = await uploadOnCloudinary(req.files.profileImage[0].path);
+//     if (profileImageResult) {
+//       // Delete old profile image
+//       if (existingPortfolio.hero?.profileImage) {
+//         await deleteFromCloudinary(existingPortfolio.hero.profileImage);
+//       }
+      
+//       data.hero = {
+//         ...(data.hero || {}),
+//         ...existingPortfolio.hero,
+//         profileImage: profileImageResult.secure_url
+//       };
+//     }
+//   } else if (data.hero) {
+
+//     // Keep existing profile image if not provided
+//     data.hero = {
+//       ...existingPortfolio.hero,
+//       ...data.hero,
+//       profileImage: existingPortfolio.hero?.profileImage
+//     };
+//   }
+
+//   // Handle project images update if provided
+//   if (req.files?.projectImage?.length > 0) {
+//     const projectImageResults = await Promise.all(
+//       req.files.projectImage.map(file => uploadOnCloudinary(file.path))
+//     );
+
+//     const updatedPortfolio = data.portfolio || existingPortfolio.portfolio;
+
+//     // Delete old images for the positions being updated
+//     for (let i = 0; i < req.files.projectImage.length; i++) {
+//       if (updatedPortfolio[i]?.projectImage) {
+//         await deleteFromCloudinary(updatedPortfolio[i].projectImage);
+//       }
+//     }
+
+//     // Use secure_url instead of url
+//     projectImageResults.forEach((result, index) => {
+//       if (result && index < updatedPortfolio.length) {
+//         updatedPortfolio[index] = {
+//           ...updatedPortfolio[index],
+//           projectImage: result.secure_url
+//         };
+//       }
+//     });
+//     data.portfolio = updatedPortfolio;
+//   } else if (data.portfolio) {
+//     // If updating portfolio data without new images, preserve existing images
+//     data.portfolio = data.portfolio.map((item, index) => {
+//       const existingItem = existingPortfolio.portfolio[index] || {};
+//       return {
+//         ...item,
+//         projectImage: item.projectImage || existingItem.projectImage || ''
+//       };
+//     });
+//   }
+
+//   // Create update object with only provided fields
+//   const updateData = Object.entries(data).reduce((acc, [key, value]) => {
+//     if (value !== undefined) {
+//       if (key === 'portfolio') {
+//         // Special handling for portfolio to preserve existing images
+//         acc[key] = value.map((item, index) => {
+//           const existingItem = existingPortfolio.portfolio[index] || {};
+//           return {
+//             ...item,
+//             projectImage: item.projectImage || existingItem.projectImage
+//           };
+//         });
+//       } 
+//       // Special handling for nested objects
+//       else if (key === 'hero' || key === 'aboutMe' || key === 'contact') {
+//         acc[key] = { ...existingPortfolio[key], ...value };
+//       } else {
+//         acc[key] = value;
+//       }
+//     }
+//     return acc;
+//   }, {});
+
+//   if (updateData.services) {
+//     updateData.services = updateData.services.slice(0, 3);
+//   }
+
+//   if (updateData.portfolio) {
+//     updateData.portfolio = updateData.portfolio.slice(0, 3);
+//   }
+
+//   // Check if email is being updated and if it already exists
+//   if (updateData.contact?.email && updateData.contact.email !== existingPortfolio.contact.email) {
+//     const emailExists = await Portfolio.findOne({
+//       _id: { $ne: req.params.id },
+//       'contact.email': updateData.contact.email
+//     });
+
+//     if (emailExists) {
+//       throw new ApiError(400, 'Email already exists in another portfolio');
+//     }
+//   }
+
+//   // Check if phone is being updated and if it already exists
+//   if (updateData.contact?.phone && updateData.contact.phone !== existingPortfolio.contact.phone) {
+//     const phoneExists = await Portfolio.findOne({
+//       _id: { $ne: req.params.id },
+//       'contact.phone': updateData.contact.phone
+//     });
+
+//     if (phoneExists) {
+//       throw new ApiError(400, 'Phone number already exists in another portfolio');
+//     }
+//   }
+
+//   // Update the portfolio with validated data
+//   const updatedPortfolio = await Portfolio.findByIdAndUpdate(
+//     req.params.id,
+//     { $set: updateData },
+//     { new: true, runValidators: true }
+//   );
+
+//   if (!updatedPortfolio) {
+//     throw new ApiError(404, 'Portfolio not found after update');
+//   }
+
+//   res.status(200).json(
+//     new ApiResponse(200, updatedPortfolio, 'Portfolio updated successfully')
+//   );
+// });
+
 const updatePortfolio = asyncHandler(async (req, res) => {
   // Find existing portfolio
   const existingPortfolio = await Portfolio.findById(req.params.id);
@@ -350,6 +418,7 @@ const updatePortfolio = asyncHandler(async (req, res) => {
     contact: tryParse(req.body.contact)
   };
 
+
   // Handle profile image update if provided
   if (req.files?.profileImage?.[0]) {
     const profileImageResult = await uploadOnCloudinary(req.files.profileImage[0].path);
@@ -359,22 +428,23 @@ const updatePortfolio = asyncHandler(async (req, res) => {
         await deleteFromCloudinary(existingPortfolio.hero.profileImage);
       }
       
+      // Correct order - existing first, then new data, then image
       data.hero = {
-        ...(data.hero || {}),
-        ...existingPortfolio.hero,
-        profileImage: profileImageResult.secure_url
+        ...existingPortfolio.hero,      // Start with existing
+        ...(data.hero || {}),            // Override with new data
+        profileImage: profileImageResult.secure_url  // Set new image
       };
     }
   } else if (data.hero) {
-
-    // Keep existing profile image if not provided
+    // Keep existing image if not uploading new one
     data.hero = {
-      ...existingPortfolio.hero,
-      ...data.hero,
-      profileImage: existingPortfolio.hero?.profileImage
+      ...existingPortfolio.hero,   // Start with existing
+      ...data.hero,                 // Override with new data
+      profileImage: existingPortfolio.hero?.profileImage  // Keep existing image
     };
   }
 
+  
   // Handle project images update if provided
   if (req.files?.projectImage?.length > 0) {
     const projectImageResults = await Promise.all(
@@ -390,7 +460,7 @@ const updatePortfolio = asyncHandler(async (req, res) => {
       }
     }
 
-    // Use secure_url instead of url
+    // Map new images to portfolio items
     projectImageResults.forEach((result, index) => {
       if (result && index < updatedPortfolio.length) {
         updatedPortfolio[index] = {
@@ -401,11 +471,12 @@ const updatePortfolio = asyncHandler(async (req, res) => {
     });
     data.portfolio = updatedPortfolio;
   } else if (data.portfolio) {
-    // If updating portfolio data without new images, preserve existing images
+    // Preserve existing images if not uploading new ones
     data.portfolio = data.portfolio.map((item, index) => {
       const existingItem = existingPortfolio.portfolio[index] || {};
       return {
-        ...item,
+        ...existingItem,  
+        ...item,          
         projectImage: item.projectImage || existingItem.projectImage || ''
       };
     });
@@ -413,20 +484,24 @@ const updatePortfolio = asyncHandler(async (req, res) => {
 
   // Create update object with only provided fields
   const updateData = Object.entries(data).reduce((acc, [key, value]) => {
-    if (value !== undefined) {
+    if (value !== undefined && value !== null) {
       if (key === 'portfolio') {
         // Special handling for portfolio to preserve existing images
         acc[key] = value.map((item, index) => {
           const existingItem = existingPortfolio.portfolio[index] || {};
           return {
-            ...item,
+            ...existingItem,  
+            ...item,         
             projectImage: item.projectImage || existingItem.projectImage
           };
         });
       } 
-      // Special handling for nested objects
+      // Correct order for nested objects
       else if (key === 'hero' || key === 'aboutMe' || key === 'contact') {
-        acc[key] = { ...existingPortfolio[key], ...value };
+        acc[key] = {
+          ...existingPortfolio[key],  // ✅ Existing first
+          ...value                     // ✅ New data second (overwrites)
+        };
       } else {
         acc[key] = value;
       }
@@ -434,16 +509,19 @@ const updatePortfolio = asyncHandler(async (req, res) => {
     return acc;
   }, {});
 
+  // Validate services count
   if (updateData.services) {
     updateData.services = updateData.services.slice(0, 3);
   }
 
+  // Validate portfolio items count
   if (updateData.portfolio) {
     updateData.portfolio = updateData.portfolio.slice(0, 3);
   }
 
-  // Check if email is being updated and if it already exists
-  if (updateData.contact?.email && updateData.contact.email !== existingPortfolio.contact.email) {
+ 
+  // Check for duplicate email
+  if (updateData.contact?.email && updateData.contact.email !== existingPortfolio.contact?.email) {
     const emailExists = await Portfolio.findOne({
       _id: { $ne: req.params.id },
       'contact.email': updateData.contact.email
@@ -454,8 +532,9 @@ const updatePortfolio = asyncHandler(async (req, res) => {
     }
   }
 
-  // Check if phone is being updated and if it already exists
-  if (updateData.contact?.phone && updateData.contact.phone !== existingPortfolio.contact.phone) {
+
+  // Check for duplicate phone
+  if (updateData.contact?.phone && updateData.contact.phone !== existingPortfolio.contact?.phone) {
     const phoneExists = await Portfolio.findOne({
       _id: { $ne: req.params.id },
       'contact.phone': updateData.contact.phone
@@ -466,7 +545,8 @@ const updatePortfolio = asyncHandler(async (req, res) => {
     }
   }
 
-  // Update the portfolio with validated data
+
+  // Update the portfolio
   const updatedPortfolio = await Portfolio.findByIdAndUpdate(
     req.params.id,
     { $set: updateData },
