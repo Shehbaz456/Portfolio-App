@@ -44,7 +44,7 @@ const HomePage = () => {
 
   const handleContinue = () => {
     if (selectedTemplate) {
-      navigate('/create', { state: { template: selectedTemplate } });
+      navigate('/portfolio', { state: { template: selectedTemplate } });
     }
   };
 
@@ -301,7 +301,7 @@ const HomePage = () => {
             {/* List Your Profile Button */}
             <div className="text-center mt-12">
               <button
-                onClick={() => navigate('/create')}
+                onClick={() => navigate('/portfolio')}
                 className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
               >
                 List your Profile

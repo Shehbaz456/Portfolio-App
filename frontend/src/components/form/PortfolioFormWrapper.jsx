@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import Navbar from '../Navbar';
 
@@ -52,7 +52,7 @@ const PortfolioFormWrapper = ({
   submitButtonText = 'Create Portfolio',
   title = 'Create Your Portfolio'
 }) => {
-  const navigate = useNavigate();
+//   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   
   // ✅ FIX: Initialize state once with merged data (no useEffect override)
